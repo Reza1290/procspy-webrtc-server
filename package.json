@@ -1,0 +1,24 @@
+{
+  "name": "procspy-webrtc-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rimraf dist && tsc -p tsconfig-build.json",
+    "build:watch": "npm run build -- --watch",
+    "dev": "nodemon -L --watch ./dist ./dist/server.js"
+  },
+  "author": "Reza1290",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@types/express": "^5.0.1",
+    "@types/socket.io": "^3.0.1",
+    "express": "^5.1.0",
+    "mediasoup": "^3.15.7",
+    "nodemon": "^3.1.9",
+    "rimraf": "^6.0.1",
+    "socket.io": "^4.8.1",
+    "typescript": "^5.8.3"
+  }
+}
