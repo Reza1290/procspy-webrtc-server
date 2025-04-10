@@ -1,0 +1,10 @@
+services:
+  app:
+    container_name: sfu-app
+    build: .
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./dist:/app/dist
+    network_mode: host  
