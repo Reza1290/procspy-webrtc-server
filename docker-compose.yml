@@ -7,4 +7,5 @@ services:
       - NODE_ENV=production
     volumes:
       - ./dist:/app/dist
+      - ./cert:/app/cert
     network_mode: host  

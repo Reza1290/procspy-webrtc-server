@@ -9,8 +9,9 @@ import { handleSocketConnection } from './sockets/mediasoup-handler'
 const PORT = 443 
 
 const sslOptions = {
-  key: fs.readFileSync(__dirname + '/cert/key.pem'),
-  cert: fs.readFileSync(__dirname+ '/cert/cert.pem'),
+  key: fs.readFileSync('/app/cert/key.pem'),
+  cert: fs.readFileSync('/app/cert/cert.pem'),
+  rejectUnauthorized: false
 }
 
 const app = express()
