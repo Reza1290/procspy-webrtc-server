@@ -2,7 +2,7 @@ import { WebRtcTransport, Router } from 'mediasoup/node/lib/types'
 
 const transportOptions = {
   listenIps: [
-    { ip: '0.0.0.0', announcedIp: process.env.ANNOUNCED_IP || '192.168.2.7' } // Replace with public IP
+    { ip: '0.0.0.0', announcedIp: process.env.ANNOUNCED_IP || '192.168.2.5' } // Replace with public IP
   ],
   enableUdp: true,
   enableTcp: true,

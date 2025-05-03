@@ -11,45 +11,45 @@ export class RoomManager {
 
   constructor(private mediaCodecs: any) {}
 
-  async createRoom( roomCode: string, socketId: string): Promise<Router> {
-    if (!this.rooms[roomCode]) {
+  async createRoom( roomId: string, socketId: string): Promise<Router> {
+    if (!this.rooms[roomId]) {
       const worker = await getMediasoupWorker()
       const router = await worker.createRouter({mediaCodecs: this.mediaCodecs})
-      this.rooms[roomCode] = {
+      this.rooms[roomId] = {
         router,
         peers: [socketId]
       };
       console.log(`Created router ID: ${router.id}`);
     } else {
-      if (!this.rooms[roomCode].peers.includes(socketId)) {
-        this.rooms[roomCode].peers.push(socketId);
+      if (!this.rooms[roomId].peers.includes(socketId)) {
+        this.rooms[roomId].peers.push(socketId);
       }
     }
 
-    return this.rooms[roomCode].router;
+    return this.rooms[roomId].router;
   }
 
-  getRouter(roomCode: string): Router | undefined {
-    return this.rooms[roomCode]?.router;
+  getRouter(roomId: string): Router | undefined {
+    return this.rooms[roomId]?.router;
   }
 
-  getPeers(roomCode: string): string[] {
-    return this.rooms[roomCode]?.peers || [];
+  getPeers(roomId: string): string[] {
+    return this.rooms[roomId]?.peers || [];
   }
 
-  removePeer(roomCode: string, socketId: string): void {
-    const room = this.rooms[roomCode];
+  removePeer(roomId: string, socketId: string): void {
+    const room = this.rooms[roomId];
     if (!room) return;
 
     room.peers = room.peers.filter(id => id !== socketId);
 
     if (room.peers.length === 0) {
-      delete this.rooms[roomCode];
-      console.log(`Room ${roomCode} is now empty. Deleted.`);
+      delete this.rooms[roomId];
+      console.log(`Room ${roomId} is now empty. Deleted.`);
     }
   }
 
-  roomExists(roomCode: string): boolean {
-    return !!this.rooms[roomCode];
+  roomExists(roomId: string): boolean {
+    return !!this.rooms[roomId];
   }
 }
