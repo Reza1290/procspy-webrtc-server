@@ -13,7 +13,7 @@ interface PeerDetails {
 
 interface Peer {
   socket: Socket;
-  roomCode: string;
+  roomId: string;
   transports: string[];
   producers: string[];
   consumers: string[];
@@ -28,21 +28,21 @@ interface Room {
 interface TransportData {
   socketId: string;
   transport: Transport;
-  roomCode: string;
+  roomId: string;
   consumer: boolean;
 }
 
 interface ProducerData {
   socketId: string;
   producer: Producer;
-  roomCode: string;
+  roomId: string;
   appData: any;
 }
 
 interface ConsumerData {
   socketId: string;
   consumer: Consumer;
-  roomCode: string;
+  roomId: string;
   appData: any;
 }
 
@@ -82,20 +82,20 @@ export async function handleSocketConnection(socket: Socket) {
     producers = removeItems(producers, socket.id, 'producer');
     transports = removeItems(transports, socket.id, 'transport');
   
-    const roomCode = peers[socket.id]?.roomCode;
-    if (roomCode) {
-      roomManager.removePeer(roomCode, socket.id);
+    const roomId = peers[socket.id]?.roomId;
+    if (roomId) {
+      roomManager.removePeer(roomId, socket.id);
     }
   
     delete peers[socket.id];
   });
 
-  socket.on("joinRoom", async ({ roomCode, isAdmin, socketId }, callback) => {
-    const router1 = await roomManager.createRoom(roomCode, socket.id)
+  socket.on("joinRoom", async ({ roomId, isAdmin, socketId }, callback) => {
+    const router1 = await roomManager.createRoom(roomId, socket.id)
 
     peers[socket.id] = {
       socket,
-      roomCode,
+      roomId,
       transports: [],
       producers: [],
       consumers: [],
@@ -108,18 +108,18 @@ export async function handleSocketConnection(socket: Socket) {
     callback({ rtpCapabilities });
   });
 
-  // const createRoom = async (roomCode: string, socketId: string): Promise<Router> => {
+  // const createRoom = async (roomId: string, socketId: string): Promise<Router> => {
   //   let router1: Router;
   //   let peerIds: string[] = [];
-  //   if (rooms[roomCode]) {
-  //     router1 = rooms[roomCode].router;
-  //     peerIds = rooms[roomCode].peers || [];
+  //   if (rooms[roomId]) {
+  //     router1 = rooms[roomId].router;
+  //     peerIds = rooms[roomId].peers || [];
   //   } else {
   //     router1 = await worker.createRouter({ mediaCodecs });
   //   }
 
   //   console.log(`Router ID: ${router1.id}`, peerIds.length);
-  //   rooms[roomCode] = {
+  //   rooms[roomId] = {
   //     router: router1,
   //     peers: [...peerIds, socketId],
   //   };
@@ -128,11 +128,11 @@ export async function handleSocketConnection(socket: Socket) {
   // };
 
   socket.on('createWebRtcTransport', async ({ consumer }, callback) => {
-    const roomCode = peers[socket.id].roomCode;
-    const router = roomManager.getRouter(roomCode);
+    const roomId = peers[socket.id].roomId;
+    const router = roomManager.getRouter(roomId);
   
     if (!router) {
-      console.error("No router found for room", roomCode);
+      console.error("No router found for room", roomId);
       return;
     }
   
@@ -147,7 +147,7 @@ export async function handleSocketConnection(socket: Socket) {
           }
         });
   
-        addTransport(transport, roomCode, consumer);
+        addTransport(transport, roomId, consumer);
       },
       error => {
         console.log(error);
@@ -156,8 +156,8 @@ export async function handleSocketConnection(socket: Socket) {
   });
   
 
-  const addTransport = (transport: Transport, roomCode: string, consumer: boolean) => {
-    transports = [...transports, { socketId: socket.id, transport, roomCode, consumer }];
+  const addTransport = (transport: Transport, roomId: string, consumer: boolean) => {
+    transports = [...transports, { socketId: socket.id, transport, roomId, consumer }];
 
     peers[socket.id] = {
       ...peers[socket.id],
@@ -165,8 +165,8 @@ export async function handleSocketConnection(socket: Socket) {
     };
   };
 
-  const addProducer = (producer: Producer, roomCode: string, appData: any) => {
-    producers = [...producers, { socketId: socket.id, producer, roomCode, appData }];
+  const addProducer = (producer: Producer, roomId: string, appData: any) => {
+    producers = [...producers, { socketId: socket.id, producer, roomId, appData }];
 
     peers[socket.id] = {
       ...peers[socket.id],
@@ -174,8 +174,8 @@ export async function handleSocketConnection(socket: Socket) {
     };
   };
 
-  const addConsumer = (consumer: Consumer, roomCode: string, appData: any) => {
-    consumers = [...consumers, { socketId: socket.id, consumer, roomCode, appData }];
+  const addConsumer = (consumer: Consumer, roomId: string, appData: any) => {
+    consumers = [...consumers, { socketId: socket.id, consumer, roomId, appData }];
 
     peers[socket.id] = {
       ...peers[socket.id],
@@ -184,17 +184,17 @@ export async function handleSocketConnection(socket: Socket) {
   };
 
   socket.on("getProducers", (callback) => {
-    const { roomCode } = peers[socket.id];
+    const { roomId } = peers[socket.id];
     const producerList = producers
-      .filter((p) => p.socketId !== socket.id && p.roomCode === roomCode)
+      .filter((p) => p.socketId !== socket.id && p.roomId === roomId)
       .map((p) => p.producer.id);
     callback(producerList);
   });
 
-  const informConsumers = (roomCode: string, socketId: string, id: string) => {
-    console.log(`just joined, id ${id} ${roomCode}, ${socketId}`);
+  const informConsumers = (roomId: string, socketId: string, id: string) => {
+    console.log(`just joined, id ${id} ${roomId}, ${socketId}`);
     producers.forEach((producerData) => {
-      if (producerData.socketId !== socketId && producerData.roomCode === roomCode) {
+      if (producerData.socketId !== socketId && producerData.roomId === roomId) {
         peers[producerData.socketId].socket.emit("new-producer", { producerId: id });
       }
     });
@@ -224,9 +224,9 @@ export async function handleSocketConnection(socket: Socket) {
   socket.on("transport-produce", async ({ kind, rtpParameters, appData }, callback) => {
     const producer = await getTransport(socket.id).produce({ kind, rtpParameters, appData });
 
-    const { roomCode } = peers[socket.id];
-    addProducer(producer, roomCode, appData);
-    informConsumers(roomCode, socket.id, producer.id);
+    const { roomId } = peers[socket.id];
+    addProducer(producer, roomId, appData);
+    informConsumers(roomId, socket.id, producer.id);
 
     producer.on("transportclose", () => {
       producer.close();
@@ -250,11 +250,11 @@ export async function handleSocketConnection(socket: Socket) {
     "consume",
     async ({ rtpCapabilities, remoteProducerId, serverConsumerTransportId }, callback) => {
       try {
-        const { roomCode } = peers[socket.id];
-        const router = roomManager.getRouter(roomCode);
+        const { roomId } = peers[socket.id];
+        const router = roomManager.getRouter(roomId);
         console.log(router)
         if (!router) {
-          console.error("No router found for room", roomCode);
+          console.error("No router found for room", roomId);
           return;
         }
 
@@ -293,7 +293,7 @@ export async function handleSocketConnection(socket: Socket) {
             consumers = consumers.filter((c) => c.consumer.id !== consumer.id);
           });
 
-          addConsumer(consumer, roomCode, producerAppData);
+          addConsumer(consumer, roomId, producerAppData);
 
           const params = {
             id: consumer.id,
@@ -326,12 +326,12 @@ export async function handleSocketConnection(socket: Socket) {
 
   const broadcastToRoom = (
     peers: Record<string, Peer>,
-    roomCode: string,
+    roomId: string,
     event: string,
     data: any
   ) => {
     for (const socketId in peers) {
-      if (peers[socketId].roomCode === roomCode) {
+      if (peers[socketId].roomId === roomId) {
         peers[socketId].socket.emit(event, data);
       }
     }
@@ -346,10 +346,10 @@ export async function handleSocketConnection(socket: Socket) {
 //   return transports.find(t => t.transport.id === id)?.transport
 // }
 
-// function notifyOthers(roomCode: string, currentSocketId: string, producerId: string) {
+// function notifyOthers(roomId: string, currentSocketId: string, producerId: string) {
 //   for (const peerId in peers) {
 //     const peer = peers[peerId]
-//     if (peer.roomCode === roomCode && peerId !== currentSocketId) {
+//     if (peer.roomId === roomId && peerId !== currentSocketId) {
 //       peer.socket.emit('new-producer', { producerId })
 //     }
 //   }

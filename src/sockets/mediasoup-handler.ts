@@ -10,11 +10,12 @@ interface PeerDetails {
 }
 import { createWorker as mediasoupCreateWorker } from 'mediasoup'
 import { httpsAgent } from "../config/https-agent";
+import { env } from "process";
 
 
 interface Peer {
   socket: Socket;
-  roomCode: string;
+  roomId: string;
   transports: string[];
   producers: string[];
   consumers: string[];
@@ -29,21 +30,21 @@ interface Room {
 interface TransportData {
   socketId: string;
   transport: Transport;
-  roomCode: string;
+  roomId: string;
   consumer: boolean;
 }
 
 interface ProducerData {
   socketId: string;
   producer: Producer;
-  roomCode: string;
+  roomId: string;
   appData: any;
 }
 
 interface ConsumerData {
   socketId: string;
   consumer: Consumer;
-  roomCode: string;
+  roomId: string;
   appData: any;
 }
 
@@ -121,50 +122,51 @@ export const handleSocketConnection = async (socket: Socket) => {
     producers = removeItems(producers, socket.id, "producer");
     transports = removeItems(transports, socket.id, "transport");
 
-    const roomCode = peers[socket.id]?.roomCode;
-    if (roomCode && rooms[roomCode]) {
-      rooms[roomCode].peers = rooms[roomCode].peers.filter((id) => id !== socket.id);
-      console.log(`Updated peers in room ${roomCode}:`, rooms[roomCode].peers);
+    const roomId = peers[socket.id]?.roomId;
+    if (roomId && rooms[roomId]) {
+      rooms[roomId].peers = rooms[roomId].peers.filter((id) => id !== socket.id);
+      console.log(`Updated peers in room ${roomId}:`, rooms[roomId].peers);
 
-      if (rooms[roomCode].peers.length === 0) {
-        console.log(`Room ${roomCode} is now empty. Deleting...`);
-        delete rooms[roomCode];
+      if (rooms[roomId].peers.length === 0) {
+        console.log(`Room ${roomId} is now empty. Deleting...`);
+        delete rooms[roomId];
       }
 
       delete peers[socket.id];
     }
   });
 
-  socket.on("joinRoom", async ({ roomCode, isAdmin, socketId, token }, callback) => {
-    const router1 = await createRoom(roomCode, socket.id);
+  socket.on("joinRoom", async ({ roomId, isAdmin, socketId, token }, callback) => {
+    const router1 = await createRoom(roomId, socket.id);
+    console.log(token)
     peers[socket.id] = {
       socket,
-      roomCode,
+      roomId,
       transports: [],
       producers: [],
       consumers: [],
       peerDetails: {
-        isAdmin : isAdmin ?? false,
-        socketId,
-        token: token ?? null,
+        isAdmin: isAdmin ?? false,
+        socketId: socketId || socket.id,
+        token: token || "000000",
       },
     };
     const rtpCapabilities = router1.rtpCapabilities;
     callback({ rtpCapabilities });
   });
 
-  const createRoom = async (roomCode: string, socketId: string): Promise<Router> => {
+  const createRoom = async (roomId: string, socketId: string): Promise<Router> => {
     let router1: Router;
     let peerIds: string[] = [];
-    if (rooms[roomCode]) {
-      router1 = rooms[roomCode].router;
-      peerIds = rooms[roomCode].peers || [];
+    if (rooms[roomId]) {
+      router1 = rooms[roomId].router;
+      peerIds = rooms[roomId].peers || [];
     } else {
       router1 = await worker.createRouter({ mediaCodecs });
     }
 
     console.log(`Router ID: ${router1.id}`, peerIds.length);
-    rooms[roomCode] = {
+    rooms[roomId] = {
       router: router1,
       peers: [...peerIds, socketId],
     };
@@ -173,8 +175,8 @@ export const handleSocketConnection = async (socket: Socket) => {
   };
 
   socket.on("createWebRtcTransport", async ({ consumer }: { consumer: boolean }, callback) => {
-    const roomCode = peers[socket.id].roomCode;
-    const router = rooms[roomCode].router;
+    const roomId = peers[socket.id].roomId;
+    const router = rooms[roomId].router;
 
     try {
       const transport = await createWebRtcTransport(router);
@@ -187,14 +189,14 @@ export const handleSocketConnection = async (socket: Socket) => {
         },
       });
 
-      addTransport(transport, roomCode, consumer);
+      addTransport(transport, roomId, consumer);
     } catch (error) {
       console.log(error);
     }
   });
 
-  const addTransport = (transport: Transport, roomCode: string, consumer: boolean) => {
-    transports = [...transports, { socketId: socket.id, transport, roomCode, consumer }];
+  const addTransport = (transport: Transport, roomId: string, consumer: boolean) => {
+    transports = [...transports, { socketId: socket.id, transport, roomId, consumer }];
 
     peers[socket.id] = {
       ...peers[socket.id],
@@ -202,8 +204,8 @@ export const handleSocketConnection = async (socket: Socket) => {
     };
   };
 
-  const addProducer = (producer: Producer, roomCode: string, appData: any) => {
-    producers = [...producers, { socketId: socket.id, producer, roomCode, appData }];
+  const addProducer = (producer: Producer, roomId: string, appData: any) => {
+    producers = [...producers, { socketId: socket.id, producer, roomId, appData }];
 
     peers[socket.id] = {
       ...peers[socket.id],
@@ -211,8 +213,8 @@ export const handleSocketConnection = async (socket: Socket) => {
     };
   };
 
-  const addConsumer = (consumer: Consumer, roomCode: string, appData: any) => {
-    consumers = [...consumers, { socketId: socket.id, consumer, roomCode, appData }];
+  const addConsumer = (consumer: Consumer, roomId: string, appData: any) => {
+    consumers = [...consumers, { socketId: socket.id, consumer, roomId, appData }];
 
     peers[socket.id] = {
       ...peers[socket.id],
@@ -221,18 +223,18 @@ export const handleSocketConnection = async (socket: Socket) => {
   };
 
   socket.on("getProducers", (callback) => {
-    const { roomCode } = peers[socket.id];
+    const { roomId } = peers[socket.id];
     const producerList = producers
-      .filter((p) => p.socketId !== socket.id && p.roomCode === roomCode)
+      .filter((p) => p.socketId !== socket.id && p.roomId === roomId)
       .map((p) => p.producer.id);
     callback(producerList);
   });
 
   socket.on("getSingleUserProducers", (consumeSocketId, callback) => {
-    const { roomCode } = peers[socket.id];
+    const { roomId } = peers[socket.id];
     console.log("producers", producers)
     const producerList = producers
-      .filter((p) => p.socketId === consumeSocketId && p.roomCode === roomCode)
+      .filter((p) => p.socketId === consumeSocketId && p.roomId === roomId)
       .map((p) => p.producer.id);
     // console.log(producerList)
     console.log('SINGLE', producerList)
@@ -240,10 +242,10 @@ export const handleSocketConnection = async (socket: Socket) => {
   });
 
 
-  const informConsumers = (roomCode: string, socketId: string, id: string) => {
-    console.log(`just joined, id ${id} ${roomCode}, ${socketId}`);
+  const informConsumers = (roomId: string, socketId: string, id: string) => {
+    console.log(`just joined, id ${id} ${roomId}, ${socketId}`);
     producers.forEach((producerData) => {
-      if (producerData.socketId !== socketId && producerData.roomCode === roomCode) {
+      if (producerData.socketId !== socketId && producerData.roomId === roomId) {
         peers[producerData.socketId].socket.emit("new-producer", { producerId: id });
       }
     });
@@ -273,10 +275,9 @@ export const handleSocketConnection = async (socket: Socket) => {
   socket.on("transport-produce", async ({ kind, rtpParameters, appData }, callback) => {
     const producer = await getTransport(socket.id).produce({ kind, rtpParameters, appData });
 
-    const { roomCode } = peers[socket.id];
-    addProducer(producer, roomCode, appData);
-    informConsumers(roomCode, socket.id, producer.id);
-
+    const { roomId } = peers[socket.id];
+    addProducer(producer, roomId, appData);
+    informConsumers(roomId, socket.id, producer.id);
     producer.on("transportclose", () => {
       producer.close();
     });
@@ -299,8 +300,8 @@ export const handleSocketConnection = async (socket: Socket) => {
     "consume",
     async ({ rtpCapabilities, remoteProducerId, serverConsumerTransportId }, callback) => {
       try {
-        const { roomCode } = peers[socket.id];
-        const router = rooms[roomCode].router;
+        const { roomId } = peers[socket.id];
+        const router = rooms[roomId].router;
         const consumerTransport = transports.find(
           (t) => t.consumer && t.transport.id === serverConsumerTransportId
         )!.transport;
@@ -335,7 +336,7 @@ export const handleSocketConnection = async (socket: Socket) => {
             consumers = consumers.filter((c) => c.consumer.id !== consumer.id);
           });
 
-          addConsumer(consumer, roomCode, producerAppData);
+          addConsumer(consumer, roomId, producerAppData);
 
           const params = {
             id: consumer.id,
@@ -359,65 +360,137 @@ export const handleSocketConnection = async (socket: Socket) => {
     await consumer.resume();
   });
 
-  socket.on("log-message", async ({ message }, callback) => {
-    console.log(message);
-    // console.log(peers);
-    await saveLog(message.flagKey, message.token, "1")
+  socket.on("DASHBOARD_SERVER_MESSAGE", async (data, callback) => {
+    sendPrivateMessage(data.data)
+  })
 
-    // broadcastToRoom(peers, "2", "server-log-message", { message: "Hello, room 2!" });
-    // broadcastToRoomDashboard()
-    await broadcastToRoomDashboard(peers, message.roomCode, "server-log-message", message)
-    callback({ success: true });
-  });
+  socket.on("EXTENSION_SERVER_MESSAGE", async ({ data }, callback) => {
+    const { action } = data
+    // console.log(data)
+    switch (action) {
+      case "PRIVATE_MESSAGE":
+        console.log(data)
+        await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_PRIVATE_MESSAGE", data)
+        callback({
+          success: true
+        })
+        break
+      case "LOG_MESSAGE":
+        await saveLog(data.flagKey, data.token, data?.attachment)
+        await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_LOG_MESSAGE", data)
+        break
+    }
+  })
 
-  const saveLog = async (flagKey: string, token: string, attachment: string = "") => {
+  socket.on("EXTENSION_PING", (callback) => {
+    callback()
+  })
+
+  const saveLog = async (flagKey: string, token: string, attachment: Record<string,any> = {}) => {
+    
+    if(attachment?.file){
+      const buffer =  base64toImage(attachment.file)
+      const file = bufferToFile(buffer,
+        "image.png"
+        ,'image/png')
+      attachment.file = await saveFile(file)
+    }
+
+    console.log(attachment)
+
     try {
       process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-      const response = await fetch(`https://192.168.2.7:5050/api/save-log`, {
+      const response = await fetch(`https://192.168.2.5:5050/api/save-log`, {
         method: "POST",
         headers: {
-          'Content-Type': 'application/json', 
+          'Content-Type': 'application/json',
+          'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
         },
         body: JSON.stringify({
           flagKey: flagKey,
           token: token,
           attachment: attachment,
-          secret: "SECRET",
+          secret: `${process.env.SECRET || env.SECRET || "SECRET"}`,
         }),
       });
 
 
       if (response.ok) {
-        
+
       }
     } catch (e) {
       console.error(e)
     }
   }
-  const broadcastToRoomDashboard =  async (
+
+  const saveFile = async (file: File):Promise<string | null> => {
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('secret', `${process.env.SECRET || env.SECRET || "SECRET"}`)
+    try {
+
+      const response = await fetch(`${env.ENDPOINT || process.env.ENDPOINT || "https://192.168.2.5:5050/api/storage"}`, {
+        method: "POST",
+        headers: {
+          'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
+        },
+        body: formData
+      })
+
+      const data = await response.json()
+      if (response.ok) {
+        return data.path
+      } else {
+        return null
+      }
+    } catch (e) {
+      return null
+    }
+  }
+
+  const base64toImage = (base64: string)=> {
+    const base64Data = base64.split(',')[1]; // Remove the data URL prefix
+    return Buffer.from(base64Data, 'base64')
+  }
+
+  const bufferToFile = (buffer: Buffer, filename: string, mimeType: string) => {
+    const blob = new Blob([buffer], { type: mimeType })
+    return new File([blob], filename, { type: mimeType })
+  }
+
+  const sendPrivateMessage = async (data: {
+    body: string,
+    roomId: string,
+    token: string,
+  }) => {
+    console.log(data)
+    console.log(data.roomId)
+    console.log(data.token)
+    //TODO: ntar tambahin ke consumer aja
+    console.log(peers)
+    for (const socketId in peers) {
+      console.log("loop", socketId)
+      if (peers[socketId].roomId === data.roomId && peers[socketId].peerDetails.token === data.token) {
+        console.log("test")
+        peers[socketId].socket.emit("SERVER_EXTENSION_MESSAGE", data);
+      }
+    }
+  }
+
+  const broadcastToRoomProctor = async (
     peers: Record<string, Peer>,
-    roomCode: string,
+    roomId: string,
     event: string,
     data: any
   ) => {
+    console.log(peers)
     for (const socketId in peers) {
-      if (peers[socketId].roomCode === roomCode && peers[socketId].peerDetails.isAdmin) {
+      if (peers[socketId].roomId === roomId && peers[socketId].peerDetails.isAdmin) {
         peers[socketId].socket.emit(event, data);
       }
     }
   };
 
-  const broadcastToRoom = (
-    peers: Record<string, Peer>,
-    roomCode: string,
-    event: string,
-    data: any
-  ) => {
-    for (const socketId in peers) {
-      if (peers[socketId].roomCode === roomCode) {
-        peers[socketId].socket.emit(event, data);
-      }
-    }
-  };
 };
