@@ -383,7 +383,8 @@ export const handleSocketConnection = async (socket: Socket) => {
   })
 
   socket.on("EXTENSION_PING", (callback) => {
-    callback()
+    const ip = socket.handshake.address;
+    callback({ip})
   })
 
   const saveLog = async (flagKey: string, token: string, attachment: Record<string,any> = {}) => {
