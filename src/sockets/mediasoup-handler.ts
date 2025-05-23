@@ -11,6 +11,7 @@ interface PeerDetails {
 import { createWorker as mediasoupCreateWorker } from 'mediasoup'
 import { httpsAgent } from "../config/https-agent";
 import { env } from "process";
+import { DeviceInfo } from "./types";
 
 
 interface Peer {
@@ -366,10 +367,10 @@ export const handleSocketConnection = async (socket: Socket) => {
 
   socket.on("EXTENSION_SERVER_MESSAGE", async ({ data }, callback) => {
     const { action } = data
-    // console.log(data)
+    console.log(data)
     switch (action) {
       case "PRIVATE_MESSAGE":
-        console.log(data)
+
         await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_PRIVATE_MESSAGE", data)
         callback({
           success: true
@@ -379,30 +380,68 @@ export const handleSocketConnection = async (socket: Socket) => {
         await saveLog(data.flagKey, data.token, data?.attachment)
         await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_LOG_MESSAGE", data)
         break
+      case "UPDATE_DEVICE_INFO":
+        console.log("HELLLLLLLLLLLLLLLLLLLL NAHHHHHHHHHHHHHHHHHHHHHH")
+        await updateDeviceInfo(data.deviceInfo, data.token)
+        break
     }
   })
 
   socket.on("EXTENSION_PING", (callback) => {
     const ip = socket.handshake.address;
-    callback({ip})
+    callback({ ip })
   })
 
-  const saveLog = async (flagKey: string, token: string, attachment: Record<string,any> = {}) => {
+  // socket.on("", async ({ data }) => {
+  //   console.log('data device', data)
+  //   const { deviceInfo, token } = data
+  //   updateDeviceInfo(deviceInfo, token)
+  // })
+
+  const updateDeviceInfo = async (deviceInfo: DeviceInfo, token: string) => {
+    //TODO:: UPDATE DEVICE INFO
     
-    if(attachment?.file){
-      const buffer =  base64toImage(attachment.file)
+    try {
+      const ipAddress = socket.handshake.address;
+      const vmIndicators = ['virtualbox', 'vmware', 'qemu', 'vbox', 'parallels', 'xen', 'microsoft basic render'];
+      const isRendererVM = vmIndicators.some(kw =>
+        deviceInfo.gpu?.toLowerCase().includes(kw)
+      );
+
+      const memoryGB = parseFloat(deviceInfo.ramSize!) || 0;
+      deviceInfo.isVM = isRendererVM || deviceInfo.cpuNumOfProcessors <= 2 || memoryGB <= 2;
+      const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session-detail`, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
+        },
+        body: JSON.stringify({
+          token,
+          ipAddress,
+          ...deviceInfo,
+        }),
+      });
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
+  const saveLog = async (flagKey: string, token: string, attachment: Record<string, any> = {}) => {
+
+    if (attachment?.file) {
+      const buffer = base64toImage(attachment.file)
       const file = bufferToFile(buffer,
         "image.png"
-        ,'image/png')
+        , 'image/png')
       attachment.file = await saveFile(file)
     }
 
-    console.log(attachment)
 
     try {
       process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-      const response = await fetch(`https://192.168.2.5:5050/api/save-log`, {
+      const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/save-log`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
@@ -425,7 +464,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     }
   }
 
-  const saveFile = async (file: File):Promise<string | null> => {
+  const saveFile = async (file: File): Promise<string | null> => {
 
     const formData = new FormData()
     formData.append('file', file)
@@ -451,7 +490,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     }
   }
 
-  const base64toImage = (base64: string)=> {
+  const base64toImage = (base64: string) => {
     const base64Data = base64.split(',')[1]; // Remove the data URL prefix
     return Buffer.from(base64Data, 'base64')
   }
@@ -466,15 +505,13 @@ export const handleSocketConnection = async (socket: Socket) => {
     roomId: string,
     token: string,
   }) => {
-    console.log(data)
-    console.log(data.roomId)
-    console.log(data.token)
+    
     //TODO: ntar tambahin ke consumer aja
-    console.log(peers)
+
     for (const socketId in peers) {
-      console.log("loop", socketId)
+  
       if (peers[socketId].roomId === data.roomId && peers[socketId].peerDetails.token === data.token) {
-        console.log("test")
+
         peers[socketId].socket.emit("SERVER_EXTENSION_MESSAGE", data);
       }
     }
