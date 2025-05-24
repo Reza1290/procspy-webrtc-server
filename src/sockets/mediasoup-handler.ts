@@ -97,8 +97,31 @@ const init = async () => {
 
 init()
 
+const setSessionStatus = async(state: string, token: string):Promise<boolean> => {
+  try{
+      const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session/update-status/${token}/${state}`,{
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
+        }
+      })
+      const data = await response.json()
+      console.log("OKOKOKOKOOK",response)
+      if(response.ok){
+        return true
+      }else{
+        const {error} = data
+        return false
+      }
+  }catch(e){
+      console.error(e)
+      return false
+  }
+}
+
 export const handleSocketConnection = async (socket: Socket) => {
-  console.log(socket.id);
+  
   socket.emit("connection-success", {
     socketId: socket.id,
   });
@@ -124,6 +147,11 @@ export const handleSocketConnection = async (socket: Socket) => {
     transports = removeItems(transports, socket.id, "transport");
 
     const roomId = peers[socket.id]?.roomId;
+    const isAdmin = peers[socket.id]?.peerDetails.isAdmin;
+    const token = peers[socket.id]?.peerDetails.token;
+    if(!isAdmin){
+      setSessionStatus("paused", token!)
+    }
     if (roomId && rooms[roomId]) {
       rooms[roomId].peers = rooms[roomId].peers.filter((id) => id !== socket.id);
       console.log(`Updated peers in room ${roomId}:`, rooms[roomId].peers);
@@ -137,8 +165,23 @@ export const handleSocketConnection = async (socket: Socket) => {
     }
   });
 
+  socket.on("sessionEnd", async() => {
+    const isAdmin = peers[socket.id]?.peerDetails.isAdmin;
+    const token = peers[socket.id]?.peerDetails.token;
+    if(!isAdmin){
+      setSessionStatus("completed", token!)
+    }
+  })
+
   socket.on("joinRoom", async ({ roomId, isAdmin, socketId, token }, callback) => {
     const router1 = await createRoom(roomId, socket.id);
+    if(!isAdmin){
+      const sessionState = await setSessionStatus("ongoing", token)
+      if(!sessionState){
+        socket.disconnect()
+        return
+      }
+    }
     console.log(token)
     peers[socket.id] = {
       socket,
@@ -379,12 +422,15 @@ export const handleSocketConnection = async (socket: Socket) => {
       case "LOG_MESSAGE":
         await saveLog(data.flagKey, data.token, data?.attachment)
         await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_LOG_MESSAGE", data)
+        callback({success: true})
         break
       case "UPDATE_DEVICE_INFO":
-        console.log("HELLLLLLLLLLLLLLLLLLLL NAHHHHHHHHHHHHHHHHHHHHHH")
         await updateDeviceInfo(data.deviceInfo, data.token)
+        callback({success: true})
         break
     }
+
+    
   })
 
   socket.on("EXTENSION_PING", (callback) => {
