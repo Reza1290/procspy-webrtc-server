@@ -27,3 +27,8 @@ export type DeviceInfo = {
     displays?: Array<Display>
     isVM?: boolean
 }
+
+export type ShortcutMatch = {
+  shortcut: string;
+  desc: string;
+};

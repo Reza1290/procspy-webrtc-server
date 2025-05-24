@@ -11,7 +11,7 @@ interface PeerDetails {
 import { createWorker as mediasoupCreateWorker } from 'mediasoup'
 import { httpsAgent } from "../config/https-agent";
 import { env } from "process";
-import { DeviceInfo } from "./types";
+import { DeviceInfo, ShortcutMatch } from "./types";
 
 
 interface Peer {
@@ -97,31 +97,31 @@ const init = async () => {
 
 init()
 
-const setSessionStatus = async(state: string, token: string):Promise<boolean> => {
-  try{
-      const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session/update-status/${token}/${state}`,{
-        method: "GET",
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
-        }
-      })
-      const data = await response.json()
-      console.log("OKOKOKOKOOK",response)
-      if(response.ok){
-        return true
-      }else{
-        const {error} = data
-        return false
+const setSessionStatus = async (state: string, token: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session/update-status/${token}/${state}`, {
+      method: "GET",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
       }
-  }catch(e){
-      console.error(e)
+    })
+    const data = await response.json()
+    console.log("OKOKOKOKOOK", response)
+    if (response.ok) {
+      return true
+    } else {
+      const { error } = data
       return false
+    }
+  } catch (e) {
+    console.error(e)
+    return false
   }
 }
 
 export const handleSocketConnection = async (socket: Socket) => {
-  
+
   socket.emit("connection-success", {
     socketId: socket.id,
   });
@@ -149,7 +149,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     const roomId = peers[socket.id]?.roomId;
     const isAdmin = peers[socket.id]?.peerDetails.isAdmin;
     const token = peers[socket.id]?.peerDetails.token;
-    if(!isAdmin){
+    if (!isAdmin) {
       setSessionStatus("paused", token!)
     }
     if (roomId && rooms[roomId]) {
@@ -165,19 +165,19 @@ export const handleSocketConnection = async (socket: Socket) => {
     }
   });
 
-  socket.on("sessionEnd", async() => {
+  socket.on("sessionEnd", async () => {
     const isAdmin = peers[socket.id]?.peerDetails.isAdmin;
     const token = peers[socket.id]?.peerDetails.token;
-    if(!isAdmin){
+    if (!isAdmin) {
       setSessionStatus("completed", token!)
     }
   })
 
   socket.on("joinRoom", async ({ roomId, isAdmin, socketId, token }, callback) => {
     const router1 = await createRoom(roomId, socket.id);
-    if(!isAdmin){
+    if (!isAdmin) {
       const sessionState = await setSessionStatus("ongoing", token)
-      if(!sessionState){
+      if (!sessionState) {
         socket.disconnect()
         return
       }
@@ -420,17 +420,31 @@ export const handleSocketConnection = async (socket: Socket) => {
         })
         break
       case "LOG_MESSAGE":
+        if (data.flagKey == "KEYSTROKE_LOGGER") {
+          let keystrokeDetected: ShortcutMatch[] = []
+          keystrokeDetected = handleKeystroke(data.attachment.text)
+          if(keystrokeDetected.length > 0){
+            keystrokeDetected.forEach(async(e) => {
+             const {flagKey , ...newData} = data
+             await saveLog("USED_SHORTCUT", data.token, e)
+             await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_LOG_MESSAGE", {flagKey: "USED_SHORTCUT", ...newData, ...e})
+           })
+          }
+          callback({success: true})
+          break
+        }
+
         await saveLog(data.flagKey, data.token, data?.attachment)
         await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_LOG_MESSAGE", data)
-        callback({success: true})
+        callback({ success: true })
         break
       case "UPDATE_DEVICE_INFO":
         await updateDeviceInfo(data.deviceInfo, data.token)
-        callback({success: true})
+        callback({ success: true })
         break
     }
 
-    
+
   })
 
   socket.on("EXTENSION_PING", (callback) => {
@@ -443,10 +457,73 @@ export const handleSocketConnection = async (socket: Socket) => {
   //   const { deviceInfo, token } = data
   //   updateDeviceInfo(deviceInfo, token)
   // })
+  const shortcutTable: { [shortcut: string]: string } = {
+    "[ctrl+c]": "Copy",
+    "[ctrl+v]": "Paste",
+    "[ctrl+a]": "Select All",
+    "[ctrl+x]": "Cut",
+    "[ctrl+z]": "Undo",
+    "[ctrl+y]": "Redo",
+    "[ctrl+s]": "Save",
+    "[ctrl+p]": "Print",
+    "[shift+h]": "Highlight",
+    "[f1]": "Open Chrome Help",
+    "[f3]": "Find on Page",
+    "[f5]": "Reload Page",
+    "[ctrl+f5]": "Hard Reload (Ignore Cache)",
+    "[f6]": "Focus Address Bar",
+    "[f7]": "Toggle Caret Browsing",
+    "[f8]": "Focus Console in DevTools",
+    "[f11]": "Toggle Full-Screen",
+    "[f12]": "Open Developer Tools",
+    "[win+d]": "Show/Hide Desktop",
+    "[win+e]": "Open File Explorer",
+    "[win+r]": "Open Run Dialog",
+    "[win+l]": "Lock PC",
+    "[win+tab]": "Open Task View",
+    "[alt+tab]": "Switch Between Open Apps",
+    "[alt+f4]": "Close Current Window",
+    "[ctrl+shift+esc]": "Open Task Manager",
+    "[ctrl+alt+del]": "Security Options",
+    "[win+i]": "Open Settings",
+    "[win+printscreen]": "Screenshot to Pictures Folder",
+    "[win+shift+s]": "Open Snip & Sketch",
+    "[win+v]": "Open Clipboard History",
+    "[win+p]": "Project Screen",
+    "[win+left]": "Snap Left",
+    "[win+right]": "Snap Right",
+    "[win+up]": "Snap Up / Maximize",
+    "[win+down]": "Snap Down / Minimize",
+  };
+
+
+  const handleKeystroke = (text: string): ShortcutMatch[] => {
+    try {
+      const lowerText = text.toLowerCase()
+      
+      console.log(lowerText)
+      const matches: ShortcutMatch[] = Object.keys(shortcutTable)
+      .filter(shortcut => lowerText.includes(shortcut))
+      .map(shortcut => ({
+        shortcut,
+        desc: shortcutTable[shortcut],
+      }))
+
+      console.log(matches)
+
+      return matches || [{}]
+    } catch (e) {
+      return []
+    }
+  }
+
+  const checkProctorDefinedShortcut = () => {
+
+  }
 
   const updateDeviceInfo = async (deviceInfo: DeviceInfo, token: string) => {
     //TODO:: UPDATE DEVICE INFO
-    
+
     try {
       const ipAddress = socket.handshake.address;
       const vmIndicators = ['virtualbox', 'vmware', 'qemu', 'vbox', 'parallels', 'xen', 'microsoft basic render'];
@@ -551,11 +628,11 @@ export const handleSocketConnection = async (socket: Socket) => {
     roomId: string,
     token: string,
   }) => {
-    
+
     //TODO: ntar tambahin ke consumer aja
 
     for (const socketId in peers) {
-  
+
       if (peers[socketId].roomId === data.roomId && peers[socketId].peerDetails.token === data.token) {
 
         peers[socketId].socket.emit("SERVER_EXTENSION_MESSAGE", data);
