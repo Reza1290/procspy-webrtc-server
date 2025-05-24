@@ -28,6 +28,7 @@ server.listen(PORT, () => {
 })
 
 const io = new SocketIOServer(server, {
+  maxHttpBufferSize: 1e9,
   cors: {
     origin: '*',
   },
