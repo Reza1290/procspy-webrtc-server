@@ -151,6 +151,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     const token = peers[socket.id]?.peerDetails.token;
     if (!isAdmin) {
       setSessionStatus("paused", token!)
+      broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "DISCONNECT"})
     }
     if (roomId && rooms[roomId]) {
       rooms[roomId].peers = rooms[roomId].peers.filter((id) => id !== socket.id);
@@ -166,10 +167,12 @@ export const handleSocketConnection = async (socket: Socket) => {
   });
 
   socket.on("sessionEnd", async () => {
+    const roomId = peers[socket.id]?.roomId;
     const isAdmin = peers[socket.id]?.peerDetails.isAdmin;
     const token = peers[socket.id]?.peerDetails.token;
     if (!isAdmin) {
       setSessionStatus("completed", token!)
+      broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "PROCTOR_STOPPED"})
     }
   })
 
@@ -408,12 +411,13 @@ export const handleSocketConnection = async (socket: Socket) => {
     sendPrivateMessage(data.data)
   })
 
+  // TODO: FIX THIS ROOMID!
   socket.on("EXTENSION_SERVER_MESSAGE", async ({ data }, callback) => {
     const { action } = data
     console.log(data)
     switch (action) {
       case "PRIVATE_MESSAGE":
-
+        
         await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_PRIVATE_MESSAGE", data)
         callback({
           success: true
