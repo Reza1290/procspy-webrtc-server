@@ -445,7 +445,7 @@ export const handleSocketConnection = async (socket: Socket) => {
       case "UPDATE_DEVICE_INFO":
         const res = await updateDeviceInfo(data.deviceInfo, data.token)
 
-        callback({ success: true })
+        callback({ success: true, authenticate: res })
         if(!res){
           socket.disconnect()
         }
@@ -545,6 +545,7 @@ export const handleSocketConnection = async (socket: Socket) => {
       if(deviceInfo.isVM) {
         broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "VM_DETECTED"})
       }
+      //TODO : CHECK NETWORK CHANGe BY IP ADRESS CHANGE
       
       const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session-detail`, {
         method: "POST",
