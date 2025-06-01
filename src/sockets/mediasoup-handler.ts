@@ -542,6 +542,9 @@ export const handleSocketConnection = async (socket: Socket) => {
       const memoryGB = parseFloat(deviceInfo.ramSize!) || 0;
       deviceInfo.isVM = isRendererVM || deviceInfo.cpuNumOfProcessors <= 2 || memoryGB <= 2;
       
+      if(deviceInfo.isVM) {
+        broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "VM_DETECTED"})
+      }
       
       const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session-detail`, {
         method: "POST",
