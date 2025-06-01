@@ -443,8 +443,12 @@ export const handleSocketConnection = async (socket: Socket) => {
         callback({ success: true })
         break
       case "UPDATE_DEVICE_INFO":
-        await updateDeviceInfo(data.deviceInfo, data.token)
+        const res = await updateDeviceInfo(data.deviceInfo, data.token)
+
         callback({ success: true })
+        if(!res){
+          socket.disconnect()
+        }
         break
     }
 
@@ -525,7 +529,7 @@ export const handleSocketConnection = async (socket: Socket) => {
 
   }
 
-  const updateDeviceInfo = async (deviceInfo: DeviceInfo, token: string) => {
+  const updateDeviceInfo = async (deviceInfo: DeviceInfo, token: string):Promise<boolean> => {
     //TODO:: UPDATE DEVICE INFO
 
     try {
@@ -537,6 +541,8 @@ export const handleSocketConnection = async (socket: Socket) => {
 
       const memoryGB = parseFloat(deviceInfo.ramSize!) || 0;
       deviceInfo.isVM = isRendererVM || deviceInfo.cpuNumOfProcessors <= 2 || memoryGB <= 2;
+      
+      
       const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session-detail`, {
         method: "POST",
         headers: {
@@ -549,9 +555,21 @@ export const handleSocketConnection = async (socket: Socket) => {
           ...deviceInfo,
         }),
       });
+
+      if(response.ok){
+        const data = await response.json()
+
+        if(data.error){
+          return false
+        }
+
+        return true
+      }
+      
     } catch (e) {
       console.log(e)
     }
+    return false
   }
 
   const saveLog = async (flagKey: string, token: string, attachment: Record<string, any> = {}) => {
