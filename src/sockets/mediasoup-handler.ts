@@ -49,13 +49,9 @@ interface ConsumerData {
   appData: any;
 }
 
-// Assuming these are defined globally or injected
-// declare const connections: Server;
-// declare const worker: Worker;
-// declare const mediaCodecs: any;
 
 let rooms: Record<string, Room> = {};
-let peers: Record<string, Peer> = {};
+export let peers: Record<string, Peer> = {};
 let transports: TransportData[] = [];
 let producers: ProducerData[] = [];
 let consumers: ConsumerData[] = [];
@@ -559,17 +555,13 @@ export const handleSocketConnection = async (socket: Socket) => {
           ...deviceInfo,
         }),
       });
-
+      console.log("rahul ",response)
       if(response.ok){
         const data = await response.json()
-
-        if(data.error){
-          return false
-        }
-
         return true
       }
       
+      return false
     } catch (e) {
       console.log(e)
     }

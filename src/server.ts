@@ -4,7 +4,7 @@ import fs from 'fs'
 import { Server as SocketIOServer } from 'socket.io'
 import path from 'path'
 import indexRoutes from './routes/index-routes'
-import { handleSocketConnection } from './sockets/mediasoup-handler'
+import { handleSocketConnection, peers } from './sockets/mediasoup-handler'
 import { env } from 'process'
 
 const PORT = 443
@@ -34,23 +34,38 @@ const io = new SocketIOServer(server, {
   },
 })
 
-// io.of('/mediasoup').use(async (socket, next) => {
-//   const token = socket.handshake.auth?.token;
+io.of('/mediasoup').use(async (socket, next) => {
+  const token = socket.handshake.auth?.token;
+  const secretAdmin = socket.handshake.auth?.secretAdmin
+  console.log(socket.handshake.auth)
+  if(secretAdmin){
+    if(secretAdmin === (process.env.SECRET_ADMIN || "SECRETBANGET")){
+      return next()
+    }else{
+      return next(new Error('Who Are You?'))
+    }
+  }
+  if (!token && !secretAdmin) {
+    return next(new Error('Authentication token missing'));
+  }
 
-//   if (!token) {
-//     return next(new Error('Authentication token missing'));
-//   }
+  if(isTokenAlreadyUsed(token)){
+    return next(new Error('Who are you?'))
+  }
 
-//   const isValid = await verifyToken(token);
+  const isValid = await verifyToken(token);
 
-//   if (!isValid) {
-//     return next(new Error('Invalid token'));
-//   }
+  if (!isValid) {
+    return next(new Error('Invalid token'));
+  }
 
-//   next();
-// });
+  next();
+});
 io.of('/mediasoup').on('connection', handleSocketConnection)
 
+function isTokenAlreadyUsed(token: string): boolean {
+  return Object.values(peers).some(peer => peer.peerDetails.token === token);
+}
 
 const verifyToken = async (token: string): Promise<boolean> => {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
