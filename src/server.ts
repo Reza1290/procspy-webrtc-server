@@ -71,7 +71,7 @@ const verifyToken = async (token: string): Promise<boolean> => {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
   try {
-    const response = await fetch(`${process.env.REST_ENDPOINT || env.REST_ENDPOINT || "http://192.168.2.5:5050"}/api/signin/${token}`)
+    const response = await fetch(`${process.env.REST_ENDPOINT || env.REST_ENDPOINT || "http://139.59.245.65:5050"}/api/signin/${token}`)
 
     const data = await response.json()
     if (response.ok) {
