@@ -1,7 +1,4 @@
-import { Server, Socket } from "socket.io";
 import { Worker, Router, Transport, Producer, Consumer, RtpCapabilities, DtlsParameters, AppData, RtpCodecCapability } from "mediasoup/node/lib/types";
-import * as mediasoup from 'mediasoup'
-import { config } from "../config/config";
 import { createWebRtcTransport } from "../mediasoup/transport";
 interface PeerDetails {
   isAdmin: boolean;
@@ -9,9 +6,8 @@ interface PeerDetails {
   token: string | null;
 }
 import { createWorker as mediasoupCreateWorker } from 'mediasoup'
-import { httpsAgent } from "../config/https-agent";
-import { env } from "process";
 import { DeviceInfo, ShortcutMatch } from "./types";
+import { Socket } from "socket.io";
 
 
 interface Peer {
@@ -95,11 +91,11 @@ init()
 
 const setSessionStatus = async (state: string, token: string): Promise<boolean> => {
   try {
-    const response = await fetch(`${process.env.ENDPOINT || 'https://139.59.245.65:5050'}/api/session/update-status/${token}/${state}`, {
+    const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session/update-status/${token}/${state}`, {
       method: "GET",
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
+        'Authorization': `Secret ${process.env.SECRET || "SECRET"}`
       }
     })
     const data = await response.json()
@@ -208,7 +204,7 @@ export const handleSocketConnection = async (socket: Socket) => {
       router1 = await worker.createRouter({ mediaCodecs });
     }
 
-    console.log(`Router ID: ${router1.id}`, peerIds.length);
+    console.log(`Router ID: ${router1.id} ${roomId}`, peerIds.length);
     rooms[roomId] = {
       router: router1,
       peers: [...peerIds, socketId],
@@ -543,11 +539,11 @@ export const handleSocketConnection = async (socket: Socket) => {
       }
       //TODO : CHECK NETWORK CHANGe BY IP ADRESS CHANGE
       
-      const response = await fetch(`${process.env.ENDPOINT || 'https://139.59.245.65:5050'}/api/session-detail`, {
+      const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session-detail`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
+          'Authorization': `Secret ${process.env.SECRET || "SECRET"}`
         },
         body: JSON.stringify({
           token,
@@ -582,17 +578,17 @@ export const handleSocketConnection = async (socket: Socket) => {
     try {
       process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-      const response = await fetch(`${process.env.ENDPOINT || 'https://139.59.245.65:5050'}/api/save-log`, {
+      const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/save-log`, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
+          'Authorization': `Secret ${process.env.SECRET || "SECRET"}`
         },
         body: JSON.stringify({
           flagKey: flagKey,
           token: token,
           attachment: attachment,
-          secret: `${process.env.SECRET || env.SECRET || "SECRET"}`,
+          secret: `${process.env.SECRET || "SECRET"}`,
         }),
       });
 
@@ -609,13 +605,13 @@ export const handleSocketConnection = async (socket: Socket) => {
 
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('secret', `${process.env.SECRET || env.SECRET || "SECRET"}`)
+    formData.append('secret', `${process.env.SECRET || "SECRET"}`)
     try {
 
-      const response = await fetch(`${env.ENDPOINT || process.env.ENDPOINT || "https://139.59.245.65:5050/api/storage"}`, {
+      const response = await fetch(`${process.env.ENDPOINT || "https://192.168.2.5:5050/api/storage"}`, {
         method: "POST",
         headers: {
-          'Authorization': `Secret ${process.env.SECRET || env.SECRET || "SECRET"}`
+          'Authorization': `Secret ${process.env.SECRET || "SECRET"}`
         },
         body: formData
       })

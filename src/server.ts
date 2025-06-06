@@ -1,31 +1,41 @@
 import express from 'express'
 import https from 'https'
+import http from 'http'
 import fs from 'fs'
 import { Server as SocketIOServer } from 'socket.io'
 import path from 'path'
 import indexRoutes from './routes/index-routes'
 import { handleSocketConnection, peers } from './sockets/mediasoup-handler'
-import { env } from 'process'
+import dotenv from 'dotenv';
+dotenv.config()
 
-const PORT = 443
+const PORT = process.env.PORT || 3000
 
-const sslOptions = {
-  //TODO: FIX DIRECTORY
-  key: fs.readFileSync('./cert/key.pem'),
-  cert: fs.readFileSync('./cert/cert.pem'),
-  rejectUnauthorized: false
-}
+let server
+const isProduction = process.env.NODE_ENV === 'production';
 
 const app = express()
+if (isProduction) {
+  server = http.createServer(app)
+  server.listen(PORT, () => {
+    console.log(`Server using http proxied port 3000`)
+  })
+} else {
+  const sslOptions = {
+    key: fs.readFileSync('./cert/key.pem'),
+    cert: fs.readFileSync('./cert/cert.pem'),
+    rejectUnauthorized: false
+  }
+
+  server = https.createServer(sslOptions, app)
+  server.listen(PORT, () => {
+    console.log(`Server running securely on https://localhost:${PORT}`)
+  })
+}
 
 // routes here
 indexRoutes(app)
 
-const server = https.createServer(sslOptions, app)
-
-server.listen(PORT, () => {
-  console.log(`Server running securely on https://localhost:${PORT}`)
-})
 
 const io = new SocketIOServer(server, {
   maxHttpBufferSize: 1e9,
@@ -38,10 +48,10 @@ io.of('/mediasoup').use(async (socket, next) => {
   const token = socket.handshake.auth?.token;
   const secretAdmin = socket.handshake.auth?.secretAdmin
   console.log(socket.handshake.auth)
-  if(secretAdmin){
-    if(secretAdmin === (process.env.SECRET_ADMIN || "SECRETBANGET")){
+  if (secretAdmin) {
+    if (secretAdmin === (process.env.SECRET_ADMIN || "SECRETBANGET")) {
       return next()
-    }else{
+    } else {
       return next(new Error('Who Are You?'))
     }
   }
@@ -49,7 +59,7 @@ io.of('/mediasoup').use(async (socket, next) => {
     return next(new Error('Authentication token missing'));
   }
 
-  if(isTokenAlreadyUsed(token)){
+  if (isTokenAlreadyUsed(token)) {
     return next(new Error('Who are you?'))
   }
 
@@ -71,7 +81,7 @@ const verifyToken = async (token: string): Promise<boolean> => {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
   try {
-    const response = await fetch(`${process.env.REST_ENDPOINT || env.REST_ENDPOINT || "http://139.59.245.65:5050"}/api/signin/${token}`)
+    const response = await fetch(`${process.env.ENDPOINT || "http://192.168.2.5:5050"}/api/signin/${token}`)
 
     const data = await response.json()
     if (response.ok) {
