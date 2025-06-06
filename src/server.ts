@@ -12,7 +12,7 @@ dotenv.config()
 const PORT = process.env.PORT || 3000
 
 let server
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production' || 'development';
 
 const app = express()
 if (isProduction) {
