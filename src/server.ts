@@ -11,14 +11,15 @@ dotenv.config()
 
 const PORT = process.env.PORT || 3000
 
+console.log(process.env.PORT)
 let server
-const isProduction = process.env.NODE_ENV === 'production' || 'development';
+const isProduction = process.env.NODE_ENV === 'production' || false;
 
 const app = express()
 if (isProduction) {
   server = http.createServer(app)
   server.listen(PORT, () => {
-    console.log(`Server using http proxied port 3000`)
+    console.log(`Server using http proxied port ${PORT}`)
   })
 } else {
   const sslOptions = {
@@ -38,7 +39,7 @@ indexRoutes(app)
 
 
 const io = new SocketIOServer(server, {
-  maxHttpBufferSize: 1e9,
+  maxHttpBufferSize: 2e9,
   cors: {
     origin: '*',
   },

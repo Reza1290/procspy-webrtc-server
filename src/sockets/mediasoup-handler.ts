@@ -595,6 +595,8 @@ export const handleSocketConnection = async (socket: Socket) => {
 
       if (response.ok) {
 
+      }else{
+        console.error(response)
       }
     } catch (e) {
       console.error(e)
@@ -605,10 +607,10 @@ export const handleSocketConnection = async (socket: Socket) => {
 
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('secret', `${process.env.SECRET || "SECRET"}`)
+    // formData.append('secret', `${process.env.SECRET || "SECRET"}`)
     try {
 
-      const response = await fetch(`${process.env.ENDPOINT || "https://192.168.2.5:5050/api/storage"}`, {
+      const response = await fetch(`${process.env.ENDPOINT || "https://192.168.2.5:5050"}/api/storage`, {
         method: "POST",
         headers: {
           'Authorization': `Secret ${process.env.SECRET || "SECRET"}`
@@ -616,13 +618,15 @@ export const handleSocketConnection = async (socket: Socket) => {
         body: formData
       })
 
-      const data = await response.json()
       if (response.ok) {
+        const data = await response.json()
         return data.path
       } else {
+        console.error(response)
         return null
       }
     } catch (e) {
+      console.error(e)
       return null
     }
   }
