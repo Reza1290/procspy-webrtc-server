@@ -131,7 +131,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     return items.filter((item) => item.socketId !== socketId);
   };
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     console.log("peer disconnected");
     console.log("disko", socket.id);
     consumers = removeItems(consumers, socket.id, "consumer");
@@ -142,8 +142,9 @@ export const handleSocketConnection = async (socket: Socket) => {
     const isAdmin = peers[socket.id]?.peerDetails.isAdmin;
     const token = peers[socket.id]?.peerDetails.token;
     if (!isAdmin) {
-      setSessionStatus("paused", token!)
-      broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "DISCONNECT"})
+      await setSessionStatus("paused", token!)
+      await saveLog("DISCONNECT", token!, {})
+      await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "DISCONNECT", token: token!})
     }
     if (roomId && rooms[roomId]) {
       rooms[roomId].peers = rooms[roomId].peers.filter((id) => id !== socket.id);
@@ -163,8 +164,9 @@ export const handleSocketConnection = async (socket: Socket) => {
     const isAdmin = peers[socket.id]?.peerDetails.isAdmin;
     const token = peers[socket.id]?.peerDetails.token;
     if (!isAdmin) {
-      setSessionStatus("completed", token!)
-      broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "PROCTOR_STOPPED"})
+      await setSessionStatus("completed", token!)
+      await saveLog("PROCTOR_STOPPED", token!, {})
+      await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "PROCTOR_STOPPED"})
     }
   })
 
@@ -664,7 +666,6 @@ export const handleSocketConnection = async (socket: Socket) => {
     event: string,
     data: any
   ) => {
-    console.log(peers)
     for (const socketId in peers) {
       if (peers[socketId].roomId === roomId && peers[socketId].peerDetails.isAdmin) {
         peers[socketId].socket.emit(event, data);
