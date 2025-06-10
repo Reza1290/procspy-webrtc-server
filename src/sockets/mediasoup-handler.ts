@@ -402,7 +402,18 @@ export const handleSocketConnection = async (socket: Socket) => {
   });
 
   socket.on("DASHBOARD_SERVER_MESSAGE", async (data, callback) => {
-    sendPrivateMessage(data.data)
+    const payload = data.data
+
+    if(payload.action === "SEND_CHAT"){
+      sendPrivateMessage(payload)
+    }
+    
+    if(payload.action === "ABORT_PROCTORING"){
+      
+      //TODO: Call save state
+      sendPrivateMessage(payload)
+    }
+    
   })
 
   // TODO: FIX THIS ROOMID!
@@ -649,7 +660,6 @@ export const handleSocketConnection = async (socket: Socket) => {
     token: string,
   }) => {
 
-    //TODO: ntar tambahin ke consumer aja
 
     for (const socketId in peers) {
 
