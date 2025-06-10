@@ -99,16 +99,15 @@ const setSessionStatus = async (state: string, token: string): Promise<boolean> 
       }
     })
     const data = await response.json()
-    console.log("OKOKOKOKOOK", data)
+
     if (response.ok) {
       return true
     } else {
-      const { error } = data
-      return error
+      return false
     }
   } catch (e: any) {
-    return false
   }
+  return false
 }
 
 export const handleSocketConnection = async (socket: Socket) => {
@@ -411,11 +410,11 @@ export const handleSocketConnection = async (socket: Socket) => {
       
       const sessionState:boolean = await setSessionStatus(payload.state, payload.token)
       
-
       if (!sessionState) {
         callback({success: false})
         return
       }
+      await saveLog("PROCTOR_STOPPED", payload.token, {})
       await sendPrivateMessage(payload)
       callback({success: true})
     }
