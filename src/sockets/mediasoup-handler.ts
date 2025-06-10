@@ -411,7 +411,12 @@ export const handleSocketConnection = async (socket: Socket) => {
     if(payload.action === "ABORT_PROCTORING"){
       
       //TODO: Call save state
-      sendPrivateMessage(payload)
+      const sessionState = await setSessionStatus(payload.state, payload.token)
+      if (!sessionState) {
+        socket.disconnect()
+        return
+      }
+      await sendPrivateMessage(payload)
     }
     
   })
