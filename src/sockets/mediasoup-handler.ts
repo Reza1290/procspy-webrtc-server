@@ -99,15 +99,14 @@ const setSessionStatus = async (state: string, token: string): Promise<boolean> 
       }
     })
     const data = await response.json()
-    console.log("OKOKOKOKOOK", response)
+    console.log("OKOKOKOKOOK", data)
     if (response.ok) {
       return true
     } else {
       const { error } = data
-      return false
+      return error
     }
-  } catch (e) {
-    console.error(e)
+  } catch (e: any) {
     return false
   }
 }
@@ -410,13 +409,15 @@ export const handleSocketConnection = async (socket: Socket) => {
     
     if(payload.action === "ABORT_PROCTORING"){
       
-      //TODO: Call save state
-      const sessionState = await setSessionStatus(payload.state, payload.token)
+      const sessionState:boolean = await setSessionStatus(payload.state, payload.token)
+      
+
       if (!sessionState) {
-        socket.disconnect()
+        callback({success: false})
         return
       }
       await sendPrivateMessage(payload)
+      callback({success: true})
     }
     
   })
