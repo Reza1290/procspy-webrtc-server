@@ -1,5 +1,7 @@
+# Stage 1: Build
 FROM ubuntu:22.04 AS builder
 
+# Install Node.js
 RUN apt-get update && \
     apt-get install -y curl gnupg && \
     curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
@@ -14,11 +16,11 @@ RUN apt-get install -y \
 WORKDIR /app
 
 COPY package*.json ./
+COPY . .                      
 RUN npm install
-
-COPY . .
 RUN npm run build
 
+# Stage 2: Runtime
 FROM ubuntu:22.04 AS runner
 
 RUN apt-get update && \
@@ -33,4 +35,4 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/main.js"]  
