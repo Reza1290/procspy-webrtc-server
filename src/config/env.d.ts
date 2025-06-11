@@ -6,7 +6,7 @@ declare namespace NodeJS {
     SECRET: string;
     SECRET_ADMIN: string;
     ANNOUNCED_IP: string;
-    MIN_PORT: number
-    MAX_PORT: number
+    MIN_PORT: string
+    MAX_PORT: string
   }
 }
