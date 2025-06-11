@@ -90,7 +90,7 @@ function isTokenAlreadyUsed(token: string): boolean {
 }
 
 const isOwnerOfTheToken = async (token: string, deviceId: string, userAgent: string, ipAddress: string): Promise<boolean> => {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
   try {
     const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session-detail`, {
       method: "POST",
@@ -112,13 +112,12 @@ const isOwnerOfTheToken = async (token: string, deviceId: string, userAgent: str
 
     return false
   } catch (error) {
-
+    console.error(error)
   }
   return false
 }
 
 const verifyToken = async (token: string): Promise<boolean> => {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
   try {
     const response = await fetch(`${process.env.ENDPOINT || "http://192.168.2.5:5050"}/api/signin/${token}`)
@@ -132,6 +131,7 @@ const verifyToken = async (token: string): Promise<boolean> => {
     return false
 
   } catch (e) {
-    return false
+    console.error(e)
   }
+  return false
 }
