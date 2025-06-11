@@ -54,7 +54,7 @@ io.of('/mediasoup').use(async (socket, next) => {
     if (secretAdmin === (process.env.SECRET_ADMIN || "SECRETBANGET")) {
       return next()
     } else {
-      return next(new Error('Who Are You?'))
+      return next(new Error('Who Are You?[0]'))
     }
   }
 
@@ -69,7 +69,7 @@ io.of('/mediasoup').use(async (socket, next) => {
   }
 
   if (isTokenAlreadyUsed(token)) {
-    return next(new Error('Who are you?'))
+    return next(new Error('Who are you?[1]'))
   }
 
   const deviceId = socket.handshake.auth?.deviceId
@@ -77,7 +77,7 @@ io.of('/mediasoup').use(async (socket, next) => {
   const ipAddress = socket.handshake.address
   const pass = await isOwnerOfTheToken(token, deviceId, userAgent, ipAddress)
   if(!pass){
-    return next(new Error('Who Are You?'))
+    return next(new Error('Who Are You?[2]'))
   }
 
 
