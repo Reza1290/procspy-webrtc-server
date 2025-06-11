@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000
 
 console.log(process.env.PORT)
 let server
-const isProduction = process.env.NODE_ENV === 'production' || false;
+const isProduction = process.env.NODE_ENV === 'production';
 
 const app = express()
 if (isProduction) {
