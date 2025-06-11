@@ -30,9 +30,9 @@ if (isProduction) {
   }
 
   server = https.createServer(sslOptions, app)
-  server.listen(PORT, () => {
-    console.log(`Server running securely on https://localhost:${PORT}`)
-  })
+  server.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`Server using http proxied port ${PORT}`);
+  });
 }
 
 // routes here
