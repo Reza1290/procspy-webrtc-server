@@ -74,8 +74,8 @@ io.of('/mediasoup').use(async (socket, next) => {
 
   const deviceId = socket.handshake.auth?.deviceId
   const userAgent = socket.handshake.auth?.userAgent
-  const ipAddress = socket.handshake.address
-  const pass = await isOwnerOfTheToken(token, deviceId, userAgent, ipAddress)
+
+  const pass = await isOwnerOfTheToken(token, deviceId, userAgent, "")
   if(!pass){
     return next(new Error('Who Are You?[2]'))
   }
