@@ -226,6 +226,9 @@ export const handleSocketConnection = async (socket: Socket) => {
           iceCandidates: transport.iceCandidates,
           dtlsParameters: transport.dtlsParameters,
         },
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' }
+        ]
       });
 
       addTransport(transport, roomId, consumer);
