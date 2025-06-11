@@ -1,4 +1,4 @@
-FROM node:20 AS builder
+FROM node:20 AS builder 
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -8,17 +8,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY app/package.json app/package-lock.json ./
+COPY package.json package-lock.json ./
 
 RUN npm install --production --unsafe-perm
 
-COPY app/src ./src
-COPY app/tsconfig-build.json ./tsconfig-build.json
+COPY src ./src
+COPY tsconfig-build.json ./tsconfig-build.json
 
 RUN npm run build
 
 
-FROM node:20 AS production
+FROM node:20 AS production # Atau node:20-alpine
 
 WORKDIR /app
 
@@ -26,6 +26,6 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 1290
-EXPOSE 10000-20000/udp
+EXPOSE 50000-60000/udp
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/sever.js"]
