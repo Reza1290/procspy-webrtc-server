@@ -1,13 +1,19 @@
-import { WebRtcTransport, Router } from 'mediasoup/node/lib/types'
+import { WebRtcTransport, Router, WebRtcTransportOptions, AppData } from 'mediasoup/node/lib/types'
 
-const transportOptions = {
-  listenIps: [
-    { ip: '0.0.0.0', announcedIp: process.env.ANNOUNCED_IP || '192.168.2.5' } // Replace with public IP
+const transportOptions: WebRtcTransportOptions<AppData> = {
+  listenInfos: [
+    // { ip: '0.0.0.0', announcedIp: process.env.ANNOUNCED_IP || '192.168.2.5' } // Replace with public IP
+    {ip: '0.0.0.0', protocol: "udp", announcedAddress: process.env.ANNOUNCED_IP || '192.168.2.5',
+    recvBufferSize: 2e9,
+    sendBufferSize: 2e9
+  }
   ],
   enableUdp: true,
   enableTcp: true,
   preferUdp: true,
+  
   // initialAvailableOutgoingBitrate: 1000000,
+  
 }
 
 export async function createWebRtcTransport(router: Router): Promise<WebRtcTransport> {

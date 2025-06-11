@@ -1,38 +1,31 @@
-# Stage 1: Build
-FROM ubuntu:22.04 AS builder
+FROM node:20 AS builder
 
-# Install Node.js
-RUN apt-get update && \
-    apt-get install -y curl gnupg && \
-    curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
-    apt-get install -y nodejs
-
-RUN apt-get install -y \
-    python3 python3-pip \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    && ln -sf /usr/bin/gcc /usr/bin/cc \
-    && ln -sf /usr/bin/g++ /usr/bin/c++
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY package*.json ./
-COPY . .                      
-RUN npm install
+COPY app/package.json app/package-lock.json ./
+
+RUN npm install --production --unsafe-perm
+
+COPY app/src ./src
+COPY app/tsconfig-build.json ./tsconfig-build.json
+
 RUN npm run build
 
-# Stage 2: Runtime
-FROM ubuntu:22.04 AS runner
 
-RUN apt-get update && \
-    apt-get install -y curl gnupg && \
-    curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+FROM node:20 AS production
 
 WORKDIR /app
 
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 
-CMD ["node", "dist/server.js"]  
+EXPOSE 1290
+EXPOSE 10000-20000/udp
+
+CMD ["node", "dist/index.js"]
