@@ -19,7 +19,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const app = express()
 if (isProduction) {
   server = http.createServer(app)
-  server.listen(PORT, () => {
+  server.listen(Number(PORT), '0.0.0.0',  () => {
     console.log(`Server using http proxied port ${PORT}`)
   })
 } else {
@@ -30,7 +30,7 @@ if (isProduction) {
   }
 
   server = https.createServer(sslOptions, app)
-  server.listen(Number(PORT), '0.0.0.0', () => {
+  server.listen(PORT, () => {
     console.log(`Server using http proxied port ${PORT}`);
   });
 }
