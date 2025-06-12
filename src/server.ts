@@ -8,7 +8,7 @@ import indexRoutes from './routes/index-routes'
 import { handleSocketConnection, peers } from './sockets/mediasoup-handler'
 import dotenv from 'dotenv';
 import { Socket } from 'dgram'
-import client from 'prom-client'
+import client, { Gauge } from 'prom-client'
 
 dotenv.config()
 
@@ -23,9 +23,21 @@ const isProduction = process.env.NODE_ENV === 'production';
 const register = new client.Registry();
 client.collectDefaultMetrics({ register });
 
-export const bitrateGauge = new client.Gauge({
-  name: 'transport_stats',
-  help: 'Current stats of webrtc server',
+export const bitrateGauge = new Gauge({
+  name: 'mediasoup_transport_bitrate',
+  help: 'Outbound RTP bitrate per transport',
+  labelNames: ['transport_id'],
+});
+
+export const rttGauge = new Gauge({
+  name: 'mediasoup_transport_rtt',
+  help: 'RTT per transport',
+  labelNames: ['transport_id'],
+});
+
+export const packetLossGauge = new Gauge({
+  name: 'mediasoup_transport_packet_loss',
+  help: 'Packet loss percentage per transport',
   labelNames: ['transport_id'],
 });
 register.registerMetric(bitrateGauge);
@@ -38,7 +50,7 @@ register.registerMetric(bitrateGauge);
 const app = express()
 if (isProduction) {
   server = http.createServer(app)
-  server.listen(Number(PORT), '0.0.0.0',  () => {
+  server.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`Server using http proxied port ${PORT}`)
   })
 } else {
@@ -103,7 +115,7 @@ io.of('/mediasoup').use(async (socket, next) => {
   const userAgent = socket.handshake.auth?.userAgent
 
   const pass = await isOwnerOfTheToken(token, deviceId, userAgent, "")
-  if(!pass){
+  if (!pass) {
     return next(new Error('Who Are You?[2]'))
   }
 
@@ -133,7 +145,7 @@ const isOwnerOfTheToken = async (token: string, deviceId: string, userAgent: str
       }),
     });
 
-    if (response.ok){
+    if (response.ok) {
       return true
     }
 

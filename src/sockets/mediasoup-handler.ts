@@ -8,7 +8,7 @@ interface PeerDetails {
 import { createWorker as mediasoupCreateWorker } from 'mediasoup'
 import { DeviceInfo, ShortcutMatch } from "./types";
 import { Socket } from "socket.io";
-import { bitrateGauge } from "../server";
+import { bitrateGauge, packetLossGauge, rttGauge } from "../server";
 
 
 interface Peer {
@@ -702,11 +702,24 @@ setInterval(async () => {
   for (const transport of transports.values()) {
     try {
       const statsArr = await transport.transport.getStats();
-      statsArr.forEach((stat: any)=> {
-        if (stat.type === 'outbound-rtp' && stat.bitrate) {
-          bitrateGauge.set({ transport_id: transport.transport.id }, stat.bitrate);
+
+      statsArr.forEach((stat: any) => {
+        const transportId = transport.transport.id;
+
+        if (stat.type === 'transport') {
+          if (stat.rtt !== undefined) {
+            rttGauge.set({ transport_id: transportId }, stat.rtt);
+          }
+          if (stat.packetLossPercentage !== undefined) {
+            packetLossGauge.set({ transport_id: transportId }, stat.packetLossPercentage);
+          }
+        }
+
+        if (stat.type === 'outbound-rtp' && stat.bitrate !== undefined) {
+          bitrateGauge.set({ transport_id: transportId }, stat.bitrate);
         }
       });
+
     } catch (err) {
       console.error('Failed to fetch stats from transport:', err);
     }
