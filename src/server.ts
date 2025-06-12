@@ -8,6 +8,8 @@ import indexRoutes from './routes/index-routes'
 import { handleSocketConnection, peers } from './sockets/mediasoup-handler'
 import dotenv from 'dotenv';
 import { Socket } from 'dgram'
+import client from 'prom-client'
+
 dotenv.config()
 
 const PORT = process.env.PORT || 3000
@@ -15,6 +17,23 @@ const PORT = process.env.PORT || 3000
 console.log(process.env.PORT)
 let server
 const isProduction = process.env.NODE_ENV === 'production';
+
+
+
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+export const bitrateGauge = new client.Gauge({
+  name: 'transport_stats',
+  help: 'Current stats of webrtc server',
+  labelNames: ['transport_id'],
+});
+register.registerMetric(bitrateGauge);
+
+
+
+
+
 
 const app = express()
 if (isProduction) {
@@ -37,6 +56,14 @@ if (isProduction) {
 
 // routes here
 indexRoutes(app)
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    res.end(await register.metrics());
+  } catch (err: any) {
+    res.status(500).end(err.message);
+  }
+});
 
 
 const io = new SocketIOServer(server, {
