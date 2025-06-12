@@ -71,6 +71,34 @@ const mediaCodecs: RtpCodecCapability[] = [
   }
 ]
 
+setInterval(async () => {
+  for (const transport of transports.values()) {
+    try {
+      const statsArr = await transport.transport.getStats();
+
+      statsArr.forEach((stat: any) => {
+        const transportId = transport.transport.id;
+
+        if (stat.type === 'transport') {
+          if (stat.rtt !== undefined) {
+            rttGauge.set({ transport_id: transportId }, stat.rtt);
+          }
+          if (stat.packetLossPercentage !== undefined) {
+            packetLossGauge.set({ transport_id: transportId }, stat.packetLossPercentage);
+          }
+        }
+
+        if (stat.type === 'outbound-rtp' && stat.bitrate !== undefined) {
+          bitrateGauge.set({ transport_id: transportId }, stat.bitrate);
+        }
+      });
+
+    } catch (err) {
+      console.error('Failed to fetch stats from transport:', err);
+    }
+  }
+}, 5000);
+
 const createWorker = async () => {
   worker = await mediasoupCreateWorker({
     rtcMinPort: Number(process.env.MIN_PORT) || 50000,
@@ -698,30 +726,4 @@ export const handleSocketConnection = async (socket: Socket) => {
 
 };
 
-setInterval(async () => {
-  for (const transport of transports.values()) {
-    try {
-      const statsArr = await transport.transport.getStats();
 
-      statsArr.forEach((stat: any) => {
-        const transportId = transport.transport.id;
-
-        if (stat.type === 'transport') {
-          if (stat.rtt !== undefined) {
-            rttGauge.set({ transport_id: transportId }, stat.rtt);
-          }
-          if (stat.packetLossPercentage !== undefined) {
-            packetLossGauge.set({ transport_id: transportId }, stat.packetLossPercentage);
-          }
-        }
-
-        if (stat.type === 'outbound-rtp' && stat.bitrate !== undefined) {
-          bitrateGauge.set({ transport_id: transportId }, stat.bitrate);
-        }
-      });
-
-    } catch (err) {
-      console.error('Failed to fetch stats from transport:', err);
-    }
-  }
-}, 5000);
