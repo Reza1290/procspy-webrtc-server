@@ -7,15 +7,11 @@ const transportOptions: WebRtcTransportOptions<AppData> = {
       ip: '0.0.0.0',
       protocol: 'udp',
       announcedAddress: process.env.ANNOUNCED_IP || '192.168.2.5',
-      recvBufferSize: 16e6,
-      sendBufferSize: 16e6,
     },
     {
       ip: '0.0.0.0',
       protocol: 'tcp',
       announcedAddress: process.env.ANNOUNCED_IP || '192.168.2.5',
-      recvBufferSize: 16e6,
-      sendBufferSize: 16e6,
     }
   ],
   enableUdp: true,
