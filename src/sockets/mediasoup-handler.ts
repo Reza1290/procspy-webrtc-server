@@ -72,7 +72,10 @@ const mediaCodecs: RtpCodecCapability[] = [
 
 const createWorker = async () => {
   worker = await mediasoupCreateWorker({
-
+    rtcMinPort: Number(process.env.MIN_PORT) || 50000,
+    rtcMaxPort: Number(process.env.MAX_PORT) || 60000,
+    logLevel: 'warn',
+    logTags: []
   })
   console.log(`worker pid ${worker.pid}`)
 
