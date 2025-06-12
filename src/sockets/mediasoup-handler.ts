@@ -399,6 +399,7 @@ export const handleSocketConnection = async (socket: Socket) => {
 
   socket.on("consumer-resume", async ({ serverConsumerId }) => {
     const { consumer } = consumers.find((c) => c.consumer.id === serverConsumerId)!;
+    console.log("consumer resumed", consumer)
     await consumer.resume();
   });
 
