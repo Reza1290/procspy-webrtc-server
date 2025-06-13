@@ -613,11 +613,11 @@ export const handleSocketConnection = async (socket: Socket) => {
       console.log("rahul ",response)
       if(response.ok){
         const data = await response.json()
-        if(data?.ipAddress !== ipAddress){
-          await saveLog("NETWORK_CHANGE",token, {from: data?.ipAddress, to: ipAddress})
-          await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "NETWORK_CHANGE"})
+        // if(data?.ipAddress !== ipAddress){
+        //   await saveLog("NETWORK_CHANGE",token, {from: data?.ipAddress, to: ipAddress})
+        //   await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "NETWORK_CHANGE"})
 
-        }
+        // }
         return true
       }
       
