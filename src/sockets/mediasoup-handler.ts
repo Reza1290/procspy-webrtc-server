@@ -71,7 +71,8 @@ const mediaCodecs: RtpCodecCapability[] = [
   }
 ]
 
-setInterval(async () => {
+const metric = () => {
+  setInterval(async () => {
   for (const transport of transports.values()) {
     try {
       const statsArr = await transport.transport.getStats();
@@ -98,6 +99,9 @@ setInterval(async () => {
     }
   }
 }, 5000);
+}
+
+metric()
 
 const createWorker = async () => {
   worker = await mediasoupCreateWorker({
@@ -589,7 +593,8 @@ export const handleSocketConnection = async (socket: Socket) => {
       deviceInfo.isVM = isRendererVM || deviceInfo.cpuNumOfProcessors <= 2 || memoryGB <= 2;
       
       if(deviceInfo.isVM) {
-        broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "VM_DETECTED"})
+        await saveLog("VM_DETECTED",token, {})
+        await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "VM_DETECTED"})
       }
       //TODO : CHECK NETWORK CHANGe BY IP ADRESS CHANGE
       
