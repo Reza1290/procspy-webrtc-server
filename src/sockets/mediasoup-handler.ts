@@ -167,8 +167,8 @@ export const handleSocketConnection = async (socket: Socket) => {
     const isAdmin = peers[socket.id]?.peerDetails.isAdmin;
     const token = peers[socket.id]?.peerDetails.token;
     if (!isAdmin) {
-      await setSessionStatus("completed", token!)
       await saveLog("PROCTOR_STOPPED", token!, {})
+      await setSessionStatus("completed", token!)
       await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "PROCTOR_STOPPED"})
     }
   })
