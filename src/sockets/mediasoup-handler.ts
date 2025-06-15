@@ -71,7 +71,7 @@ const mediaCodecs: RtpCodecCapability[] = [
   }
 ]
 
-const metric = () => {
+export const metric = () => {
   setInterval(async () => {
   for (const transport of transports.values()) {
     try {
@@ -101,7 +101,6 @@ const metric = () => {
 }, 5000);
 }
 
-metric()
 
 const createWorker = async () => {
   worker = await mediasoupCreateWorker({

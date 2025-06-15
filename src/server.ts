@@ -5,7 +5,7 @@ import fs from 'fs'
 import { Server as SocketIOServer } from 'socket.io'
 import path from 'path'
 import indexRoutes from './routes/index-routes'
-import { handleSocketConnection, peers } from './sockets/mediasoup-handler'
+import { handleSocketConnection, metric, peers } from './sockets/mediasoup-handler'
 import dotenv from 'dotenv';
 import { Socket } from 'dgram'
 import client, { Gauge } from 'prom-client'
@@ -70,6 +70,7 @@ if (isProduction) {
 indexRoutes(app)
 app.get('/metrics', async (req, res) => {
   try {
+    metric()
     res.set('Content-Type', register.contentType);
     res.end(await register.metrics());
   } catch (err: any) {
