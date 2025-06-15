@@ -71,7 +71,7 @@ const mediaCodecs: RtpCodecCapability[] = [
   }
 ]
 
-const metric = () => {
+export const metric = () => {
   setInterval(async () => {
   for (const transport of transports.values()) {
     try {
