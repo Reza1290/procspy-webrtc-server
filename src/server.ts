@@ -42,13 +42,10 @@ export const packetLossGauge = new Gauge({
 });
 
 const metric = () => {
-  console.log('[METRIC] metric() started', transports)
   setInterval(async () => {
-    console.log('[METRIC] get transports started', transports)
   for (const transport of transports.values()) {
     try {
       const statsArr = await transport.transport.getStats();
-      console.log("data stats", statsArr)
       statsArr.forEach((stat: any) => {
         const transportId = transport.transport.id;
 
@@ -56,7 +53,7 @@ const metric = () => {
           if (stat.rtt !== undefined) {
             rttGauge.set({ transport_id: transportId }, stat.rtt);
           }
-          if (stat.packetLossPercentage !== undefined) {
+          if (stat.rtpPacketLossReceived !== undefined) {
             packetLossGauge.set({ transport_id: transportId }, stat.rtpPacketLossReceived);
           }
         }
