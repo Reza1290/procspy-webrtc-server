@@ -308,7 +308,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     }
   };
 
-  const getTransport = (socketId: string): Transport => {
+  const getTransport = (socketId: string): WebRtcTransport => {
     const transportData = transports.find(
       (t) => t.socketId === socketId && !t.consumer
     );
