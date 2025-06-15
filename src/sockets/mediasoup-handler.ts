@@ -177,10 +177,14 @@ export const handleSocketConnection = async (socket: Socket) => {
     const router1 = await createRoom(roomId, socket.id);
     if (!isAdmin) {
       const sessionState = await setSessionStatus("ongoing", token)
+      
       if (!sessionState) {
         socket.disconnect()
         return
       }
+
+      await saveLog("CONNECT", token, {})
+      await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "CONNECT"})
     }
     console.log(token)
     peers[socket.id] = {
