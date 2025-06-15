@@ -5,7 +5,7 @@ import fs from 'fs'
 import { Server as SocketIOServer } from 'socket.io'
 import path from 'path'
 import indexRoutes from './routes/index-routes'
-import { handleSocketConnection, metric, peers } from './sockets/mediasoup-handler'
+import { handleSocketConnection, peers, transports } from './sockets/mediasoup-handler'
 import dotenv from 'dotenv';
 import { Socket } from 'dgram'
 import client, { Gauge } from 'prom-client'
@@ -40,10 +40,40 @@ export const packetLossGauge = new Gauge({
   help: 'Packet loss percentage per transport',
   labelNames: ['transport_id'],
 });
+
+const metric = () => {
+  setInterval(async () => {
+  for (const transport of transports.values()) {
+    try {
+      const statsArr = await transport.transport.getStats();
+
+      statsArr.forEach((stat: any) => {
+        const transportId = transport.transport.id;
+
+        if (stat.type === 'transport') {
+          if (stat.rtt !== undefined) {
+            rttGauge.set({ transport_id: transportId }, stat.rtt);
+          }
+          if (stat.packetLossPercentage !== undefined) {
+            packetLossGauge.set({ transport_id: transportId }, stat.packetLossPercentage);
+          }
+        }
+
+        if (stat.type === 'outbound-rtp' && stat.bitrate !== undefined) {
+          bitrateGauge.set({ transport_id: transportId }, stat.bitrate);
+        }
+      });
+
+    } catch (err) {
+      console.error('Failed to fetch stats from transport:', err);
+    }
+  }
+}, 5000);
+}
+
 register.registerMetric(bitrateGauge);
 register.registerMetric(rttGauge);
 register.registerMetric(packetLossGauge);
-
 
 
 
@@ -71,6 +101,7 @@ if (isProduction) {
 // routes here
 indexRoutes(app)
 metric()
+
 app.get('/metrics', async (req, res) => {
   try {
     res.set('Content-Type', register.contentType);

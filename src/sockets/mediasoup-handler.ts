@@ -49,7 +49,7 @@ interface ConsumerData {
 
 let rooms: Record<string, Room> = {};
 export let peers: Record<string, Peer> = {};
-let transports: TransportData[] = [];
+export let transports: TransportData[] = [];
 let producers: ProducerData[] = [];
 let consumers: ConsumerData[] = [];
 let worker: Worker
@@ -71,37 +71,6 @@ const mediaCodecs: RtpCodecCapability[] = [
   }
 ]
 
-export const metric = () => {
-  setInterval(async () => {
-  for (const transport of transports.values()) {
-    try {
-      const statsArr = await transport.transport.getStats();
-
-      statsArr.forEach((stat: any) => {
-        const transportId = transport.transport.id;
-
-        if (stat.type === 'transport') {
-          if (stat.rtt !== undefined) {
-            rttGauge.set({ transport_id: transportId }, stat.rtt);
-          }
-          if (stat.packetLossPercentage !== undefined) {
-            packetLossGauge.set({ transport_id: transportId }, stat.packetLossPercentage);
-          }
-        }
-
-        if (stat.type === 'outbound-rtp' && stat.bitrate !== undefined) {
-          bitrateGauge.set({ transport_id: transportId }, stat.bitrate);
-        }
-      });
-
-    } catch (err) {
-      console.error('Failed to fetch stats from transport:', err);
-    }
-  }
-}, 5000);
-}
-
-metric()
 
 const createWorker = async () => {
   worker = await mediasoupCreateWorker({
