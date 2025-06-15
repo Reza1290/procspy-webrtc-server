@@ -52,12 +52,12 @@ const metric = () => {
       statsArr.forEach((stat: any) => {
         const transportId = transport.transport.id;
 
-        if (stat.type === 'transport') {
+        if (stat.type === 'transport' || stat.type === 'webrtc-transport') {
           if (stat.rtt !== undefined) {
             rttGauge.set({ transport_id: transportId }, stat.rtt);
           }
           if (stat.packetLossPercentage !== undefined) {
-            packetLossGauge.set({ transport_id: transportId }, stat.packetLossPercentage);
+            packetLossGauge.set({ transport_id: transportId }, stat.rtpPacketLossReceived);
           }
         }
 

@@ -1,4 +1,4 @@
-import { Worker, Router, Transport, Producer, Consumer, RtpCapabilities, DtlsParameters, AppData, RtpCodecCapability } from "mediasoup/node/lib/types";
+import { Worker, Router, Transport, Producer, Consumer, RtpCapabilities, DtlsParameters, AppData, RtpCodecCapability, WebRtcTransport } from "mediasoup/node/lib/types";
 import { createWebRtcTransport } from "../mediasoup/transport";
 interface PeerDetails {
   isAdmin: boolean;
@@ -27,7 +27,7 @@ interface Room {
 
 interface TransportData {
   socketId: string;
-  transport: Transport;
+  transport: WebRtcTransport;
   roomId: string;
   consumer: boolean;
 }
@@ -242,7 +242,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     }
   });
 
-  const addTransport = (transport: Transport, roomId: string, consumer: boolean) => {
+  const addTransport = (transport: WebRtcTransport, roomId: string, consumer: boolean) => {
     transports = [...transports, { socketId: socket.id, transport, roomId, consumer }];
 
     peers[socket.id] = {
@@ -475,7 +475,7 @@ export const handleSocketConnection = async (socket: Socket) => {
   })
 
   socket.on("EXTENSION_PING", (callback) => {
-    const ip = socket.handshake.address;
+    const ip = transports.find((e) => e.socketId == socket.id)?.transport?.iceSelectedTuple?.remoteIp || "";
     callback({ ip })
   })
 
@@ -552,7 +552,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     //TODO:: UPDATE DEVICE INFO
 
     try {
-      const ipAddress = socket.handshake.address;
+      const ipAddress = transports.find((e) => e.socketId == socket.id)?.transport?.iceSelectedTuple?.remoteIp || "";
       const vmIndicators = ['virtualbox', 'vmware', 'qemu', 'vbox', 'parallels', 'xen', 'microsoft basic render'];
       const isRendererVM = vmIndicators.some(kw =>
         deviceInfo.gpu?.toLowerCase().includes(kw)
