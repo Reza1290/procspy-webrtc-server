@@ -44,6 +44,7 @@ export const packetLossGauge = new Gauge({
 const metric = () => {
   console.log('[METRIC] metric() started', transports)
   setInterval(async () => {
+    console.log('[METRIC] get transports started', transports)
   for (const transport of transports.values()) {
     try {
       const statsArr = await transport.transport.getStats();
