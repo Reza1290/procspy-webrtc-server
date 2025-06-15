@@ -48,7 +48,7 @@ const metric = () => {
   for (const transport of transports.values()) {
     try {
       const statsArr = await transport.transport.getStats();
-
+      console.log("data stats", statsArr)
       statsArr.forEach((stat: any) => {
         const transportId = transport.transport.id;
 
