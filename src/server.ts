@@ -41,6 +41,8 @@ export const packetLossGauge = new Gauge({
   labelNames: ['transport_id'],
 });
 register.registerMetric(bitrateGauge);
+register.registerMetric(rttGauge);
+register.registerMetric(packetLossGauge);
 
 
 
