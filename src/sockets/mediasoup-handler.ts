@@ -147,7 +147,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     if (!isAdmin) {
       await setSessionStatus("paused", token!)
       await saveLog("DISCONNECT", token!, {})
-      await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "DISCONNECT", token: token!})
+      await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey: "DISCONNECT", token: token! })
     }
     if (roomId && rooms[roomId]) {
       rooms[roomId].peers = rooms[roomId].peers.filter((id) => id !== socket.id);
@@ -169,7 +169,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     if (!isAdmin) {
       await saveLog("PROCTOR_STOPPED", token!, {})
       await setSessionStatus("completed", token!)
-      await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "PROCTOR_STOPPED"})
+      await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey: "PROCTOR_STOPPED" })
     }
   })
 
@@ -177,14 +177,14 @@ export const handleSocketConnection = async (socket: Socket) => {
     const router1 = await createRoom(roomId, socket.id);
     if (!isAdmin) {
       const sessionState = await setSessionStatus("ongoing", token)
-      
+
       if (!sessionState) {
         socket.disconnect()
         return
       }
 
       await saveLog("CONNECT", token, {})
-      await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "CONNECT"})
+      await broadcastToRoomProctor(peers, roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey: "CONNECT" })
     }
     console.log(token)
     peers[socket.id] = {
@@ -415,23 +415,23 @@ export const handleSocketConnection = async (socket: Socket) => {
   socket.on("DASHBOARD_SERVER_MESSAGE", async (data, callback) => {
     const payload = data.data
 
-    if(payload.action === "SEND_CHAT"){
+    if (payload.action === "SEND_CHAT") {
       sendPrivateMessage(payload)
     }
-    
-    if(payload.action === "ABORT_PROCTORING"){
-      
-      const sessionState:boolean = await setSessionStatus(payload.state, payload.token)
-      
+
+    if (payload.action === "ABORT_PROCTORING") {
+
+      const sessionState: boolean = await setSessionStatus(payload.state, payload.token)
+
       if (!sessionState) {
-        callback({success: false})
+        callback({ success: false })
         return
       }
       await saveLog("PROCTOR_STOPPED", payload.token, {})
       await sendPrivateMessage(payload)
-      callback({success: true})
+      callback({ success: true })
     }
-    
+
   })
 
   // TODO: FIX THIS ROOMID!
@@ -440,7 +440,7 @@ export const handleSocketConnection = async (socket: Socket) => {
     console.log(data)
     switch (action) {
       case "PRIVATE_MESSAGE":
-        
+
         await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_PRIVATE_MESSAGE", data)
         callback({
           success: true
@@ -450,14 +450,14 @@ export const handleSocketConnection = async (socket: Socket) => {
         if (data.flagKey == "KEYSTROKE_LOGGER") {
           let keystrokeDetected: ShortcutMatch[] = []
           keystrokeDetected = handleKeystroke(data.attachment.text)
-          if(keystrokeDetected.length > 0){
-            keystrokeDetected.forEach(async(e) => {
-             const {flagKey , ...newData} = data
-             await saveLog("USED_SHORTCUT", data.token, e)
-             await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_LOG_MESSAGE", {flagKey: "USED_SHORTCUT", ...newData, ...e})
-           })
+          if (keystrokeDetected.length > 0) {
+            keystrokeDetected.forEach(async (e) => {
+              const { flagKey, ...newData } = data
+              await saveLog("USED_SHORTCUT", data.token, e)
+              await broadcastToRoomProctor(peers, data.roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey: "USED_SHORTCUT", ...newData, ...e })
+            })
           }
-          callback({success: true})
+          callback({ success: true })
           break
         }
 
@@ -469,7 +469,7 @@ export const handleSocketConnection = async (socket: Socket) => {
         const res = await updateDeviceInfo(data.deviceInfo, data.token)
 
         callback({ success: true, authenticate: res })
-        if(!res){
+        if (!res) {
           socket.disconnect()
         }
         break
@@ -531,14 +531,14 @@ export const handleSocketConnection = async (socket: Socket) => {
   const handleKeystroke = (text: string): ShortcutMatch[] => {
     try {
       const lowerText = text.toLowerCase()
-      
+
       console.log(lowerText)
       const matches: ShortcutMatch[] = Object.keys(shortcutTable)
-      .filter(shortcut => lowerText.includes(shortcut))
-      .map(shortcut => ({
-        shortcut,
-        desc: shortcutTable[shortcut],
-      }))
+        .filter(shortcut => lowerText.includes(shortcut))
+        .map(shortcut => ({
+          shortcut,
+          desc: shortcutTable[shortcut],
+        }))
 
       console.log(matches)
 
@@ -552,7 +552,7 @@ export const handleSocketConnection = async (socket: Socket) => {
 
   }
 
-  const updateDeviceInfo = async (deviceInfo: DeviceInfo, token: string):Promise<boolean> => {
+  const updateDeviceInfo = async (deviceInfo: DeviceInfo, token: string): Promise<boolean> => {
     //TODO:: UPDATE DEVICE INFO
 
     try {
@@ -564,17 +564,29 @@ export const handleSocketConnection = async (socket: Socket) => {
 
       const memoryGB = parseFloat(deviceInfo.ramSize!) || 0;
       deviceInfo.isVM = isRendererVM || deviceInfo.cpuNumOfProcessors <= 2 || memoryGB <= 2;
-      
-      if(deviceInfo.isVM) {
-        await saveLog("VM_DETECTED",token, {})
-        await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "VM_DETECTED"})
+
+      if (deviceInfo.isVM) {
+        await saveLog("VM_DETECTED", token, {})
+        await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey: "VM_DETECTED" })
       }
-      if(deviceInfo?.displays && deviceInfo?.displays.length > 1){
-        await saveLog("MULTIPLE_MONITORS",token, {})
-        await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "MULTIPLE_MONITORS"})
+      if (deviceInfo?.displays && deviceInfo?.displays.length > 1) {
+        await saveLog("MULTIPLE_MONITORS", token, {})
+        await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey: "MULTIPLE_MONITORS" })
+      }
+
+      if (deviceInfo?.cam && deviceInfo.cam.trim() !== "") {
+        if (deviceInfo.cam.toLowerCase().includes("virtual")) {
+          await saveLog("VIDEO_MANIPULATION", token, {});
+          await broadcastToRoomProctor(
+            peers,
+            peers[socket.id]?.roomId,
+            "SERVER_DASHBOARD_LOG_MESSAGE",
+            { flagKey: "VIDEO_MANIPULATION" }
+          );
+        }
       }
       //TODO : CHECK NETWORK CHANGe BY IP ADRESS CHANGE
-      
+
       const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session-detail`, {
         method: "POST",
         headers: {
@@ -587,16 +599,16 @@ export const handleSocketConnection = async (socket: Socket) => {
           ...deviceInfo,
         }),
       });
-      console.log("rahul ",response)
-      if(response.ok){
+      console.log("rahul ", response)
+      if (response.ok) {
         const data = await response.json()
-        if(data?.prevIp !== ipAddress){
-          await saveLog("NETWORK_CHANGE",token, {from: data?.prevIp, to: ipAddress})
-          await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "NETWORK_CHANGE"})
+        if (data?.prevIp !== ipAddress) {
+          await saveLog("NETWORK_CHANGE", token, { from: data?.prevIp, to: ipAddress })
+          await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey: "NETWORK_CHANGE" })
         }
         return true
       }
-      
+
       return false
     } catch (e) {
       console.log(e)
@@ -635,7 +647,7 @@ export const handleSocketConnection = async (socket: Socket) => {
 
       if (response.ok) {
 
-      }else{
+      } else {
         console.error(response)
       }
     } catch (e) {

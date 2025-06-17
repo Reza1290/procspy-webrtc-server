@@ -26,6 +26,7 @@ export type DeviceInfo = {
     storages?: Array<Storage>
     displays?: Array<Display>
     isVM?: boolean
+    cam?: string
 }
 
 export type ShortcutMatch = {
