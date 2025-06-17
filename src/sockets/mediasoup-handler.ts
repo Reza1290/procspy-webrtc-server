@@ -569,6 +569,10 @@ export const handleSocketConnection = async (socket: Socket) => {
         await saveLog("VM_DETECTED",token, {})
         await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "VM_DETECTED"})
       }
+      if(deviceInfo?.displays && deviceInfo?.displays.length > 1){
+        await saveLog("MULTIPLE_MONITORS",token, {})
+        await broadcastToRoomProctor(peers, peers[socket.id].roomId, "SERVER_DASHBOARD_LOG_MESSAGE", { flagKey : "MULTIPLE_MONITORS"})
+      }
       //TODO : CHECK NETWORK CHANGe BY IP ADRESS CHANGE
       
       const response = await fetch(`${process.env.ENDPOINT || 'https://192.168.2.5:5050'}/api/session-detail`, {
