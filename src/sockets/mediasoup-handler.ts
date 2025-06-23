@@ -175,7 +175,7 @@ export const handleSocketConnection = async (socket: Socket) => {
 
   socket.on("joinRoom", async ({ roomId, isAdmin, socketId, token }, callback) => {
     const router1 = await createRoom(roomId, socket.id);
-    if (!isAdmin) {
+    if (isAdmin === null || !isAdmin) {
       const sessionState = await setSessionStatus("ongoing", token)
 
       if (!sessionState) {
